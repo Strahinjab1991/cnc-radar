@@ -17,9 +17,17 @@ jobs:
 
       - name: Accept SDK licences and install platform
         run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager "platforms;android-34" "build-tools;34.0.0"
           echo "ANDROID_HOME=$ANDROID_HOME"
+          SDKM=$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -1)
+          if [ -z "$SDKM" ]; then SDKM=$(ls "$ANDROID_HOME"/tools/bin/sdkmanager 2>/dev/null | head -1); fi
+          echo "sdkmanager=$SDKM"
+          if [ -n "$SDKM" ]; then
+            yes 2>/dev/null | "$SDKM" --licenses > /dev/null || true
+            "$SDKM" "platforms;android-34" "build-tools;34.0.0" || true
+          else
+            echo "sdkmanager nije nadjen, Gradle ce sam provjeriti SDK"
+          fi
+          ls "$ANDROID_HOME/platforms" || true
 
       - name: Core tests (pure Java)
         run: |
