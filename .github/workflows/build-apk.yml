@@ -1,0 +1,40 @@
+name: Build APK
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licences and install platform
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Core tests (pure Java)
+        run: |
+          javac -d /tmp/rt app/src/main/java/com/cncmikron/radar/core/*.java core-test/com/cncmikron/radar/core/CoreTest.java
+          java -cp /tmp/rt com.cncmikron.radar.core.CoreTest
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CNC-Radar-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
